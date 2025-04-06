@@ -11,39 +11,6 @@ from tensorflow.keras.preprocessing import image
 import pyttsx3
 from twilio.rest import Client
 import sqlite3
-import serial.tools.list_ports
-
-############################################################# Background colour ########################################################
-st.markdown("""
-    <style>
-        .stApp {
-            background-color: #333333;  
-            box-shadow: 10px 10px 30px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-""", unsafe_allow_html=True)
-############################################################# Background colour ########################################################
-
-############################################################# For button colour #######################################################
-st.markdown("""
-    <style>
-        .stButton > button {
-            background-color: rgb(165, 165, 32);  
-            color: black;  
-            border: none;  
-            border-radius: 10px; 
-            padding: 10px 20px;  
-            font-size: 16px; 
-        }
-
-  
-        .stButton > button:hover {
-            background-color: #FDD835;  
-        }
-    </style>
-""", unsafe_allow_html=True)
-############################################################### For button colour ######################################################
-
 
 
 
@@ -99,31 +66,9 @@ def SMSAlet(message, client, recipient_number1, recipient_number2, recipient_num
     print(message.sid)
 ################################################################### SMS alet message set ######################################################
 
-########################################################################################## Title colour ######################################
-st.markdown("""
-    <style>
-        /* Custom style for the title */
-        .custom-title {
-            font-size: 50px;
-            font-weight: bold;
-            color: rgb(201, 201, 250);  
-        }
-        .emoji {
-            font-size: 46px;
-        }
-        .custom-options {
-            font-size: 40px;
-            color: green;  
-            font-weight: bold;
-        }
-    </style>
-""", unsafe_allow_html=True)
-############################################################################################## Title colour ######################################
 ############################################################# For title ######################################
-st.markdown('<span class="emoji">🔥</span> <span class="custom-title">FIRE DETECTION SYSTEM</span> <span class="emoji">🔥</span>', unsafe_allow_html=True)
-#st.sidebar.header("Options")
-st.sidebar.markdown('<span class="custom-options">Options</span>', unsafe_allow_html=True)
-
+st.title("🔥 FIRE DETECTION SYSTEM 🔥")
+st.sidebar.header("Options")
 
 ############################################################## For title #####################################
 
@@ -230,7 +175,7 @@ def delete_oldest_record():
             """
             cursor.execute(delete_query)
             conn.commit()
-            print("🗑️ Oldest record deleted.")
+            print("🗑 Oldest record deleted.")
     except Exception as e:
         print(f"❌ Error deleting data: {e}")
 ############################################################## delete_oldest_record ###################################################
@@ -269,25 +214,12 @@ def insert_sensor_data2(smoke, temperature, fire):
 
 
 ########################################################### Connect to Arduino via Serial ################################################
-def find_arduino():
-    ports = serial.tools.list_ports.comports()
-    for port in ports:
-        if "Arduino" in port.description or "CH340" in port.description:  # Adjust for your board type
-            return port.device
-    return None
-
 def connectSerial():
-    arduino_port = find_arduino()
-    if arduino_port:
-        try:
-            ser = serial.Serial(arduino_port, 9600, timeout=1)
-            print(f"Connected to Arduino on {arduino_port}")
-            return ser
-        except serial.SerialException as e:
-            print(f"Connection error: {e}")
-            return None
-    else:
-        print("Arduino not found.")
+    try:
+        ser = serial.Serial('COM5', 9600, timeout=1)
+        return ser
+    except serial.SerialException as e:
+        print(f'Connection error: {e}')
         return None
 ########################################################### Connect to Arduino via Serial ################################################
 
@@ -295,7 +227,7 @@ def connectSerial():
 @st.cache_resource
 def load_model():
     try:
-        return tf.keras.models.load_model("resnet50_fire_model.h5")  
+        return tf.keras.models.load_model("model.h5")  
     except Exception as e:
         st.error(f"❌ Error loading model: {e}")
         return None
@@ -313,7 +245,7 @@ def predict_image(img_path):
         val = model.predict(x)
         return float(val[0][0])
     except Exception as e:
-        st.error(f"⚠️ Prediction error: {e}")
+        st.error(f"⚠ Prediction error: {e}")
         return None
 ################################################################# Fire Prediction using camera ######################################################
 
@@ -379,21 +311,12 @@ def display_data2():
         st.warning("No data available.")
 ################################# For display data2 ############################### 
 
-def about() :
-    st.title(' Electronics components ')
-    st.write('### >> Arduino : ARDUINO UNO V173')
-    st.write('### >> Smoke : MQ-2 Sensor')
-    st.write('### >> Temparature sensor : Temparature sensor')
-
-
-
 
 ######################################################### Detection camera, smoke && temp ################################################
 def start_camera():
     ser = connectSerial()
     if not ser:
-        st.error("### ❌ Failed to connect to Arduino.")
-        st.error("### Please connect to Arduino  & than run this web-app..")
+        st.error("❌ Failed to connect to Arduino.")
         return
     
     #insert_sensor_data2(500, 500 , 1.0)
@@ -417,7 +340,7 @@ def start_camera():
                 temperatureC, analogTemp = map(float, line.split(','))
                 print(f"🌡 Temperature: {temperatureC}°C, 💨 Smoke: {analogTemp}ppm")
             except ValueError:
-                print("⚠️ Invalid sensor data received.")
+                print("⚠ Invalid sensor data received.")
         
       
         ret, frame = cap.read()
@@ -436,10 +359,9 @@ def start_camera():
 
         
         CameraValue = predict_image(img_path)
-        
         #CameraValue = 0.4
-        #analogTemp = 100
-        #temperatureC = 1
+        #analogTemp = 300
+        #temperatureC = 15
         if CameraValue is not None:
             if CameraValue > 0.3 and analogTemp >= 250 and temperatureC >= 13:  
                 count += 1
@@ -449,17 +371,15 @@ def start_camera():
                     insert_sensor_data2(analogTemp, temperatureC , 1.0)
                     for i in range(6) :
                         text_to_speech('Fire')
-                        text_to_speech('Fire detected on the 1st floor! Please evacuate immediately using the nearest exit. 🚪⚠️')
+                        text_to_speech('Fire detected on the 1st floor! Please evacuate immediately using the nearest exit. 🚪⚠')
                         if(i == 6) :
-                            message = '🔥 Fire detected on the 1st floor! Please evacuate immediately using the nearest exit. 🚪⚠️'
+                            #message = '🔥 Fire detected on the 1st floor! Please evacuate immediately using the nearest exit. 🚪⚠'
                             SMSAlet(message, SMSSource(), recipient_number1, recipient_number2,  recipient_number3, recipient_number4) 
                         else :
                             print(i) 
-                            
                     return  
             else:
                 prediction_placeholder.subheader(f"✅ No Fire Detected ")   #{str(CameraValue)}
-                count = 0
                 insert_sensor_dataTemp(analogTemp, temperatureC)
                 delete_oldest_record()
                 
@@ -472,8 +392,7 @@ def start_camera():
     
 ######################################################### Detection camera, smoke && temp ################################################
 
-if __name__ == "__main__":
-    #st.title("🔥 FIRE DETECTION SYSTEM 🔥")
+if _name_ == "_main_":
     model = load_model()
     if st.sidebar.button("Start Live Camera"):
         start_camera()
@@ -485,7 +404,3 @@ if st.sidebar.button("Show Sensor Data"):
 if st.sidebar.button("Show Fire data"):
     st.markdown("# FirePredict display data 🌡💨 🔥")
     display_data2()
-
-if st.sidebar.button("About Components"):
-    st.markdown("# About detection model components")
-    about()
